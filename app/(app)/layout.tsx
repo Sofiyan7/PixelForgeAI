@@ -11,6 +11,8 @@ import {
   Share2Icon,
   UploadIcon,
   ImageIcon,
+  Trash2,
+  ChevronDown,
 } from "lucide-react";
 
 const sidebarItems = [
@@ -25,6 +27,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useClerk();
@@ -36,6 +39,33 @@ export default function AppLayout({
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "WARNING: Are you sure you want to permanently delete your account? This will delete all your uploaded videos from Cloudinary, your database records, and your login account from Clerk. This action cannot be undone."
+    );
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/user/delete", {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        alert("Your account has been successfully deleted.");
+        await signOut();
+        router.push("/sign-in");
+      } else {
+        const errData = await response.json();
+        alert(`Failed to delete account: ${errData.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      alert("Failed to delete account. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -66,29 +96,54 @@ export default function AppLayout({
                 </div>
               </Link>
             </div>
-            <div className="flex-none flex items-center space-x-4">
+            <div className="flex-none flex items-center">
               {user && (
-                <>
-                  <div className="avatar">
-                    <div className="w-8 h-8 rounded-full">
-                      <img
-                        src={user.imageUrl}
-                        alt={
-                          user.username || user.emailAddresses[0].emailAddress
-                        }
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm truncate max-w-xs lg:max-w-md">
-                    {user.username || user.emailAddresses[0].emailAddress}
-                  </span>
-                  <button
-                    onClick={handleSignOut}
-                    className="btn btn-ghost btn-circle"
+                <div className="dropdown dropdown-end">
+                  <label
+                    tabIndex={0}
+                    className="btn btn-ghost flex items-center gap-2 px-2 hover:bg-zinc-800 rounded-lg cursor-pointer normal-case"
                   >
-                    <LogOutIcon className="h-6 w-6" />
-                  </button>
-                </>
+                    <div className="avatar">
+                      <div className="w-8 h-8 rounded-full">
+                        <img
+                          src={user.imageUrl}
+                          alt="user avatar"
+                        />
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium hidden sm:inline-block max-w-[150px] truncate text-white">
+                      {user.username || user.emailAddresses[0].emailAddress}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-zinc-400" />
+                  </label>
+                  <ul
+                    tabIndex={0}
+                    className="dropdown-content menu p-2 shadow-2xl bg-zinc-900 border border-zinc-800 rounded-xl w-56 mt-3 z-50 text-zinc-200"
+                  >
+                    <li className="menu-title px-4 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                      User Settings
+                    </li>
+                    <li>
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg hover:bg-zinc-800 hover:text-white transition-colors"
+                      >
+                        <LogOutIcon className="w-4 h-4 text-zinc-400" />
+                        Sign Out
+                      </button>
+                    </li>
+                    <li className="border-t border-zinc-800 mt-1 pt-1">
+                      <button
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Account
+                      </button>
+                    </li>
+                  </ul>
+                </div>
               )}
             </div>
           </div>
@@ -137,6 +192,15 @@ export default function AppLayout({
           )}
         </aside>
       </div>
+      {/* Fullscreen Deleting Overlay */}
+      {isDeleting && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
+          <span className="loading loading-spinner loading-lg text-red-500"></span>
+          <p className="text-white mt-4 font-semibold text-lg animate-pulse">
+            Permanently deleting your account and assets...
+          </p>
+        </div>
+      )}
     </div>
   );
 }

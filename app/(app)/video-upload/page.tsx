@@ -8,6 +8,7 @@ function VideoUpload() {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     
     const router = useRouter();
     //max file size of 60 mb
@@ -24,6 +25,7 @@ function VideoUpload() {
         }
 
         setIsUploading(true);
+        setUploadProgress(0);
         const formData = new FormData();
         formData.append("file", file);
         formData.append("title", title);
@@ -31,7 +33,16 @@ function VideoUpload() {
         formData.append("originalSize", file.size.toString());
         
         try {
-            const response = await axios.post("/api/video-upload", formData)
+            const response = await axios.post("/api/video-upload", formData, {
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round(
+                            (progressEvent.loaded * 100) / progressEvent.total
+                        );
+                        setUploadProgress(percentCompleted);
+                    }
+                }
+            })
             if(response.status === 200){
                 router.push("/");
             }
@@ -42,7 +53,7 @@ function VideoUpload() {
         }
     }
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 max-w-lg">
       <h1 className="text-2xl font-bold mb-4">Upload Video</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -81,11 +92,24 @@ function VideoUpload() {
         </div>
         <button
           type="submit"
-          className="btn btn-primary"
+          className="btn btn-primary w-full"
           disabled={isUploading}
         >
           {isUploading ? "Uploading..." : "Upload Video"}
         </button>
+        {isUploading && (
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between text-sm font-semibold">
+              <span className="text-zinc-400">Uploading to server...</span>
+              <span className="text-primary">{uploadProgress}%</span>
+            </div>
+            <progress
+              className="progress progress-primary w-full"
+              value={uploadProgress}
+              max="100"
+            ></progress>
+          </div>
+        )}
       </form>
     </div>
   );

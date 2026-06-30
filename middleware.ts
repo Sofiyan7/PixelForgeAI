@@ -19,6 +19,15 @@ export default clerkMiddleware( async (auth, req) => {
   if (userId && isPublicRoute(req) && !isAccessingDashboard) {
     return NextResponse.redirect(new URL("/home", req.url));
   }
+
+  // Redirect root path '/' based on authentication status
+  if (currentUrl.pathname === "/") {
+    if (userId) {
+      return NextResponse.redirect(new URL("/home", req.url));
+    } else {
+      return NextResponse.redirect(new URL("/sign-in", req.url));
+    }
+  }
   //not logged in
   if (!userId) {
     // If user is not logged in and trying to access a protected route

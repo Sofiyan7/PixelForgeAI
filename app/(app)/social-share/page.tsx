@@ -1,6 +1,7 @@
 "use client"
-import React, {useState, useEffect, useRef, use} from 'react'
-import { CldImage } from 'next-cloudinary';
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { CldImage, getCldImageUrl } from 'next-cloudinary';
+import { Trash2, Image as ImageIcon } from 'lucide-react';
 
 const socialFormats = {
   "Instagram Square (1:1)": { width: 1080, height: 1080, aspectRatio: "1:1" },
@@ -12,14 +13,38 @@ const socialFormats = {
 
 type SocialFormat = keyof typeof socialFormats;
 
+interface ImageRecord {
+  id: string;
+  publicId: string;
+  createdAt: string;
+}
 
 export default function SocialShare() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<SocialFormat>("Instagram Square (1:1)");
   const [isUploading, setIsUploading] = useState(false);
   const [isTransforming, setIsTransforming] = useState(false);
+  const [images, setImages] = useState<ImageRecord[]>([]);
+  const [loadingImages, setLoadingImages] = useState(true);
   const imageRef = useRef<HTMLImageElement>(null);
 
+  const fetchImages = useCallback(async () => {
+    try {
+      const response = await fetch("/api/images");
+      if (response.ok) {
+        const data = await response.json();
+        setImages(data);
+      }
+    } catch (error) {
+      console.error("Error fetching images:", error);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
 
   useEffect(() => {
     if(uploadedImage){
@@ -44,12 +69,37 @@ export default function SocialShare() {
 
       const data = await response.json();
       setUploadedImage(data.publicId);
+      setImages((prev) => [data, ...prev]);
 
     } catch (error) {
       console.log(error)
       alert("Failed to upload image");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const confirmDelete = window.confirm("Are you sure you want to delete this image?");
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`/api/images?id=${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setImages((prev) => prev.filter((img) => img.id !== id));
+        const targetImage = images.find((img) => img.id === id);
+        if (targetImage && uploadedImage === targetImage.publicId) {
+          setUploadedImage(null);
+        }
+      } else {
+        alert("Failed to delete image");
+      }
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      alert("Error deleting image");
     }
   };
 
@@ -69,88 +119,141 @@ export default function SocialShare() {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        document.body.removeChild(link);
       });
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-          <h1 className="text-3xl font-bold mb-6 text-center">
-            Social Media Image Creator
-          </h1>
+    <div className="container mx-auto p-4 max-w-4xl space-y-8">
+      <h1 className="text-3xl font-bold text-center text-white">
+        Social Media Image Creator
+      </h1>
 
-          <div className="card">
-            <div className="card-body">
-              <h2 className="card-title mb-4">Upload an Image</h2>
+      <div className="card bg-base-200 border border-zinc-800 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title mb-4 text-white">Upload an Image</h2>
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text text-zinc-400">Choose an image file</span>
+            </label>
+            <input
+              type="file"
+              onChange={handleFileUpload}
+              className="file-input file-input-bordered file-input-primary w-full"
+            />
+          </div>
+
+          {isUploading && (
+            <div className="mt-4">
+              <progress className="progress progress-primary w-full"></progress>
+            </div>
+          )}
+
+          {uploadedImage && (
+            <div className="mt-6">
+              <h2 className="card-title mb-4 text-white">Select Social Media Format</h2>
               <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Choose an image file</span>
-                </label>
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  className="file-input file-input-bordered file-input-primary w-full"
-                />
+                <select
+                  className="select select-bordered w-full bg-zinc-900 border-zinc-700 text-white"
+                  value={selectedFormat}
+                  onChange={(e) =>
+                    setSelectedFormat(e.target.value as SocialFormat)
+                  }
+                >
+                  {Object.keys(socialFormats).map((format) => (
+                    <option key={format} value={format}>
+                      {format}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {isUploading && (
-                <div className="mt-4">
-                  <progress className="progress progress-primary w-full"></progress>
-                </div>
-              )}
-
-              {uploadedImage && (
-                <div className="mt-6">
-                  <h2 className="card-title mb-4">Select Social Media Format</h2>
-                  <div className="form-control">
-                    <select
-                      className="select select-bordered w-full"
-                      value={selectedFormat}
-                      onChange={(e) =>
-                        setSelectedFormat(e.target.value as SocialFormat)
-                      }
-                    >
-                      {Object.keys(socialFormats).map((format) => (
-                        <option key={format} value={format}>
-                          {format}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mt-6 relative">
-                    <h3 className="text-lg font-semibold mb-2">Preview:</h3>
-                    <div className="flex justify-center">
-                      {isTransforming && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-base-100 bg-opacity-50 z-10">
-                          <span className="loading loading-spinner loading-lg"></span>
-                        </div>
-                      )}
-                      <CldImage
-                        width={socialFormats[selectedFormat].width}
-                        height={socialFormats[selectedFormat].height}
-                        src={uploadedImage}
-                        sizes="100vw"
-                        alt="transformed image"
-                        crop="fill"
-                        aspectRatio={socialFormats[selectedFormat].aspectRatio}
-                        gravity='auto'
-                        ref={imageRef}
-                        onLoad={() => setIsTransforming(false)}
-                        />
+              <div className="mt-6 relative">
+                <h3 className="text-lg font-semibold mb-2 text-zinc-300">Preview:</h3>
+                <div className="flex justify-center bg-black/40 rounded-xl p-4 border border-zinc-800">
+                  {isTransforming && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-base-100 bg-opacity-50 z-10">
+                      <span className="loading loading-spinner loading-lg"></span>
                     </div>
-                  </div>
-
-                  <div className="card-actions justify-end mt-6">
-                    <button className="btn btn-primary" onClick={handleDownload}>
-                      Download for {selectedFormat}
-                    </button>
-                  </div>
+                  )}
+                  <CldImage
+                    width={socialFormats[selectedFormat].width}
+                    height={socialFormats[selectedFormat].height}
+                    src={uploadedImage}
+                    sizes="100vw"
+                    alt="transformed image"
+                    crop="fill"
+                    aspectRatio={socialFormats[selectedFormat].aspectRatio}
+                    gravity='auto'
+                    ref={imageRef}
+                    onLoad={() => setIsTransforming(false)}
+                  />
                 </div>
-              )}
+              </div>
+
+              <div className="card-actions justify-end mt-6">
+                <button className="btn btn-primary text-white" onClick={handleDownload}>
+                  Download for {selectedFormat}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      );
+      </div>
+
+      {/* Image Gallery History */}
+      <div className="card bg-base-200 border border-zinc-800 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title mb-4 text-white flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-primary" />
+            Your Uploaded Images
+          </h2>
+          
+          {loadingImages ? (
+            <div className="flex justify-center py-8">
+              <span className="loading loading-spinner text-primary"></span>
+            </div>
+          ) : images.length === 0 ? (
+            <p className="text-center text-zinc-500 py-8 border border-dashed border-zinc-800 rounded-xl">
+              No images uploaded yet. Upload one above to get started!
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+              {images.map((img) => (
+                <div
+                  key={img.id}
+                  onClick={() => setUploadedImage(img.publicId)}
+                  className={`relative group aspect-square rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                    uploadedImage === img.publicId
+                      ? "border-primary ring-2 ring-primary"
+                      : "border-zinc-800 hover:border-zinc-700"
+                  }`}
+                >
+                  <img
+                    src={getCldImageUrl({
+                      src: img.publicId,
+                      width: 200,
+                      height: 200,
+                      crop: "fill",
+                      gravity: "auto",
+                    })}
+                    alt="gallery thumbnail"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                  {/* Delete Button */}
+                  <button
+                    onClick={(e) => handleDeleteImage(e, img.id)}
+                    className="btn btn-error btn-xs btn-circle absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg text-white"
+                    title="Delete image"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 

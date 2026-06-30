@@ -12,20 +12,22 @@ cloudinary.config({
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest){
+export async function GET(request: NextRequest) {
     try {
         const { userId } = await auth();
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        const videos = await prisma.video.findMany({
+        const images = await prisma.image.findMany({
             where: { userId },
-            orderBy: {createdAt: "desc"}
-        })
-        return NextResponse.json(videos);
+            orderBy: { createdAt: "desc" }
+        });
+        return NextResponse.json(images);
     } catch (error) {
-        return NextResponse.json({ error: "Error fetching videos" }, { status: 500 });
+        console.error("Error fetching images", error);
+        return NextResponse.json({ error: "Error fetching images" }, { status: 500 });
     } finally {
+        await prisma.$disconnect();
     }
 }
 
@@ -39,27 +41,26 @@ export async function DELETE(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get("id");
         if (!id) {
-            return NextResponse.json({ error: "Missing video ID" }, { status: 400 });
+            return NextResponse.json({ error: "Missing image ID" }, { status: 400 });
         }
 
-        // Find the video and verify ownership
-        const video = await prisma.video.findUnique({
+        // Find the image and verify ownership
+        const image = await prisma.image.findUnique({
             where: { id }
         });
 
-        if (!video) {
-            return NextResponse.json({ error: "Video not found" }, { status: 404 });
+        if (!image) {
+            return NextResponse.json({ error: "Image not found" }, { status: 404 });
         }
 
-        if (video.userId !== userId) {
+        if (image.userId !== userId) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // Delete from Cloudinary (requires resource_type: "video")
+        // Delete from Cloudinary (defaults to resource_type: "image")
         await new Promise((resolve, reject) => {
             cloudinary.uploader.destroy(
-                video.publicId,
-                { resource_type: "video" },
+                image.publicId,
                 (error, result) => {
                     if (error) reject(error);
                     else resolve(result);
@@ -68,14 +69,14 @@ export async function DELETE(request: NextRequest) {
         });
 
         // Delete from Database
-        await prisma.video.delete({
+        await prisma.image.delete({
             where: { id }
         });
 
-        return NextResponse.json({ message: "Video deleted successfully" });
+        return NextResponse.json({ message: "Image deleted successfully" });
     } catch (error) {
-        console.error("Delete video failed", error);
-        return NextResponse.json({ error: "Delete video failed" }, { status: 500 });
+        console.error("Delete image failed", error);
+        return NextResponse.json({ error: "Delete image failed" }, { status: 500 });
     } finally {
         await prisma.$disconnect();
     }

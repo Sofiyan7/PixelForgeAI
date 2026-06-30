@@ -1,21 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { getCldImageUrl, getCldVideoUrl } from "next-cloudinary";
-import { Download, Clock, FileDown, FileUp } from "lucide-react";
+import { Download, Clock, FileDown, FileUp, Trash2 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { filesize } from "filesize";
 import { Video } from "@prisma/client";
+import axios from "axios";
 
 dayjs.extend(relativeTime);
 
 interface VideoCardProps {
   video: Video;
   onDownload: (url: string, title: string) => void;
+  onDeleteComplete: (id: string) => void;
+  onPlayClick: (url: string, title: string) => void;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ video, onDownload }) => {
+const VideoCard: React.FC<VideoCardProps> = ({ video, onDownload, onDeleteComplete, onPlayClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [previewError, setPreviewError] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getThumbnailUrl = useCallback((publicId: string) => {
     return getCldImageUrl({
       src: publicId,
@@ -68,17 +73,37 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDownload }) => {
     setPreviewError(true);
   };
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmDelete = window.confirm("Are you sure you want to delete this video?");
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await axios.delete(`/api/videos?id=${video.id}`);
+      if (response.status === 200) {
+        onDeleteComplete(video.id);
+      }
+    } catch (error) {
+      console.error("Error deleting video", error);
+      alert("Failed to delete video");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div
-      className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300"
+      className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden group border border-zinc-800"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onPlayClick(getFullVideoUrl(video.publicId), video.title)}
     >
       <figure className="aspect-video relative">
         {isHovered ? (
           previewError ? (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-              <p className="text-red-500">Preview not available</p>
+            <div className="w-full h-full flex items-center justify-center bg-zinc-800">
+              <p className="text-red-500 text-sm">Preview not available</p>
             </div>
           ) : (
             <video
@@ -97,48 +122,64 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onDownload }) => {
             className="w-full h-full object-cover"
           />
         )}
-        <div className="absolute bottom-2 right-2 bg-base-100 bg-opacity-70 px-2 py-1 rounded-lg text-sm flex items-center">
-          <Clock size={16} className="mr-1" />
+        <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 px-2 py-1 rounded-lg text-sm flex items-center text-white">
+          <Clock size={16} className="mr-1 text-primary" />
           {formatDuration(video.duration)}
         </div>
       </figure>
       <div className="card-body p-4">
-        <h2 className="card-title text-lg font-bold">{video.title}</h2>
-        <p className="text-sm text-base-content opacity-70 mb-4">
+        <h2 className="card-title text-lg font-bold text-white group-hover:text-primary transition-colors">
+          {video.title}
+        </h2>
+        <p className="text-sm text-zinc-400 line-clamp-2 min-h-[40px]">
           {video.description}
         </p>
-        <p className="text-sm text-base-content opacity-70 mb-4">
+        <p className="text-xs text-zinc-500 mb-2">
           Uploaded {dayjs(video.createdAt).fromNow()}
         </p>
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-2 gap-4 text-xs mt-2 border-t border-zinc-800 pt-3">
           <div className="flex items-center">
-            <FileUp size={18} className="mr-2 text-primary" />
+            <FileUp size={16} className="mr-2 text-primary" />
             <div>
-              <div className="font-semibold">Original</div>
-              <div>{formatSize(Number(video.originalSize))}</div>
+              <div className="text-zinc-500">Original</div>
+              <div className="font-semibold text-white">{formatSize(Number(video.originalSize))}</div>
             </div>
           </div>
           <div className="flex items-center">
-            <FileDown size={18} className="mr-2 text-secondary" />
+            <FileDown size={16} className="mr-2 text-secondary" />
             <div>
-              <div className="font-semibold">Compressed</div>
-              <div>{formatSize(Number(video.compressedSize))}</div>
+              <div className="text-zinc-500">Compressed</div>
+              <div className="font-semibold text-white">{formatSize(Number(video.compressedSize))}</div>
             </div>
           </div>
         </div>
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm font-semibold">
-            Compression:{" "}
-            <span className="text-accent">{compressionPercentage}%</span>
+        <div className="flex justify-between items-center mt-4 border-t border-zinc-800 pt-3">
+          <div className="text-xs font-semibold text-zinc-400">
+            Saved:{" "}
+            <span className="text-accent text-sm font-bold">{compressionPercentage}%</span>
           </div>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() =>
-              onDownload(getFullVideoUrl(video.publicId), video.title)
-            }
-          >
-            <Download size={16} />
-          </button>
+          <div className="flex space-x-2">
+            <button
+              className="btn btn-error btn-outline btn-sm"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              ) : (
+                <Trash2 size={16} />
+              )}
+            </button>
+            <button
+              className="btn btn-primary btn-sm text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(getFullVideoUrl(video.publicId), video.title);
+              }}
+            >
+              <Download size={16} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

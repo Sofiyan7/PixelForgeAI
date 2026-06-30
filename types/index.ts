@@ -6,6 +6,7 @@ export interface Video {
     originalSize: number
     compressedSize: number
     duration: number
+    userId: string
     createdAt: Date
     updatedAt: Date
 }

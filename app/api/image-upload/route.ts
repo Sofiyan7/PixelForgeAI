@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { auth } from "@clerk/nextjs/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // Configuration
   cloudinary.config({
@@ -44,9 +47,19 @@ import { auth } from "@clerk/nextjs/server";
                 uploadStream.end(buffer);
             }
         )
+
+        // Save to NeonDB
+        const image = await prisma.image.create({
+          data: {
+            publicId: result.public_id,
+            userId: userId,
+          },
+        });
+
         return NextResponse.json(
             {
-                publicId: result.public_id
+                id: image.id,
+                publicId: image.publicId
             },
             {
                 status: 200
@@ -56,5 +69,7 @@ import { auth } from "@clerk/nextjs/server";
     } catch (error) {
       console.log("Upload image failed", error);
       return NextResponse.json({ error: "Upload image failed" }, { status: 500 });
+    } finally {
+        await prisma.$disconnect();
     }
   }
