@@ -13,6 +13,8 @@ import {
   ImageIcon,
   Trash2,
   ChevronDown,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const sidebarItems = [
@@ -28,10 +30,25 @@ export default function AppLayout({
 }>) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [theme, setTheme] = useState("dark");
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useClerk();
   const { user } = useUser();
+
+  React.useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    setTheme(savedTheme);
+  }, []);
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
 
   const handleLogoClick = () => {
     router.push("/");
@@ -89,14 +106,30 @@ export default function AppLayout({
                 <MenuIcon />
               </label>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 flex items-center gap-2">
               <Link href="/" onClick={handleLogoClick}>
-                <div className="btn btn-ghost normal-case text-2xl font-bold tracking-tight cursor-pointer">
-                  Cloudinary Showcase
+                <div className="btn btn-ghost normal-case text-2xl font-bold tracking-tight cursor-pointer flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-teal-400 to-indigo-500 flex items-center justify-center text-white text-sm font-black shadow-md shadow-teal-500/10">
+                    PF
+                  </div>
+                  <span className="bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">
+                    PixelForge AI
+                  </span>
                 </div>
               </Link>
             </div>
-            <div className="flex-none flex items-center">
+            <div className="flex-none flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="btn btn-ghost btn-circle text-zinc-400 hover:text-white"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-5 w-5 text-amber-400" />
+                ) : (
+                  <Moon className="h-5 w-5 text-indigo-400" />
+                )}
+              </button>
               {user && (
                 <div className="dropdown dropdown-end">
                   <label

@@ -3,42 +3,44 @@ import Link from "next/link";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen w-full bg-[#09090b] flex items-center justify-center relative overflow-hidden px-4">
+    <div className="min-h-screen w-full bg-[#030712] flex items-center justify-center relative overflow-hidden px-4">
       {/* Dynamic Background Glows */}
-      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px] animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-[100px] animate-pulse delay-1000"></div>
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-teal-500/10 rounded-full blur-[100px] animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-pink-500/10 rounded-full blur-[100px] animate-pulse delay-1000"></div>
       
       <div className="w-full max-w-md z-10 flex flex-col items-center">
         {/* Brand Header */}
-        <div className="mb-6 flex flex-col items-center">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center mb-3">
-            <span className="text-xl font-bold text-indigo-400">CS</span>
+        <div className="mb-8 flex items-center gap-3 bg-zinc-900/40 border border-zinc-800/40 px-5 py-3 rounded-2xl backdrop-blur-md">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-400 to-indigo-500 flex items-center justify-center text-white text-base font-black shadow-md shadow-teal-500/20">
+            PF
           </div>
-          <h2 className="text-xl font-semibold text-white">Cloudinary Showcase</h2>
-          <p className="text-xs text-gray-400 mt-1">Manage and optimize your media SaaS</p>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-white leading-none">PixelForge AI</h2>
+            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-1 uppercase">Media Intelligence SaaS</p>
+          </div>
         </div>
 
         <SignIn
           appearance={{
             variables: {
-              colorPrimary: "#6366f1", // Indigo 500
-              colorBackground: "#18181b", // Zinc 900
+              colorPrimary: "#14b8a6", // Teal 500
+              colorBackground: "#09090b", // Zinc 955
               colorText: "#f4f4f5", // Zinc 100
               colorTextSecondary: "#a1a1aa", // Zinc 400
-              colorInputBackground: "#09090b", // Zinc 950
+              colorInputBackground: "#121214", // Zinc 900
               colorInputText: "#ffffff",
-              colorBorder: "#27272a", // Zinc 800
+              colorBorder: "#1f1f23", // Zinc 800
             },
             elements: {
-              card: "shadow-2xl border border-zinc-800 bg-[#18181b]/90 backdrop-blur-xl rounded-2xl w-full p-6",
+              card: "shadow-2xl border border-zinc-900 bg-zinc-950/80 backdrop-blur-xl rounded-3xl w-full p-6",
               headerTitle: "text-2xl font-bold tracking-tight text-white text-center",
               headerSubtitle: "text-zinc-400 text-sm mt-1 text-center",
-              socialButtonsBlockButton: "bg-[#27272a] hover:bg-[#3f3f46] text-white border border-[#3f3f46] transition-all duration-200 py-2.5",
+              socialButtonsBlockButton: "bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 transition-all duration-200 py-2.5",
               socialButtonsBlockButtonText: "text-white font-medium",
-              formButtonPrimary: "bg-indigo-600 hover:bg-indigo-500 text-white transition-all duration-200 border-none shadow-lg shadow-indigo-600/20 py-2.5 font-medium",
+              formButtonPrimary: "bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white transition-all duration-200 border-none shadow-lg shadow-teal-500/10 py-2.5 font-semibold",
               formFieldLabel: "text-zinc-300 font-medium text-xs uppercase tracking-wider mb-1",
-              formFieldInput: "bg-[#09090b] border border-[#27272a] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-white py-2 px-3 transition-all",
-              dividerLine: "bg-[#27272a]",
+              formFieldInput: "bg-zinc-900 border border-zinc-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 rounded-xl text-white py-2 px-3 transition-all",
+              dividerLine: "bg-[#1f1f23]",
               dividerText: "text-zinc-500 text-xs uppercase tracking-wider",
               formFieldInputShowPasswordButton: "text-zinc-400 hover:text-white",
               footer: "hidden", // Completely hide the footer containing Clerk branding and Dev mode banner
@@ -53,7 +55,7 @@ export default function SignInPage() {
         {/* Custom Clean Footer */}
         <p className="text-sm text-zinc-400 mt-6 text-center">
           Don't have an account?{" "}
-          <Link href="/sign-up" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
+          <Link href="/sign-up" className="text-teal-400 hover:text-teal-300 font-semibold transition-colors">
             Sign up
           </Link>
         </p>
